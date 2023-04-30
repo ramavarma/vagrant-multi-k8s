@@ -1,4 +1,9 @@
 ---
+- name: Performing base setup
+  hosts: all
+  roles:
+    - common
+
 - name: Setting up haproxy and reverse proxy server
   hosts: reverse-proxy
   roles:
@@ -6,6 +11,15 @@
 
 
 - name: Performing base kubernetes setup
-  hosts: all
+  hosts: k8s-boxes
   roles:
-    - common
+    - k8s-setup
+
+- name: Initialising primary controller
+  hosts: k8s-primary-controller
+  vars:
+    loadbalancer: master-1.01234.local
+    api_port: 6443
+    # home: "{{ lookup('env', 'HOME') }}"
+  roles:
+    - config-main

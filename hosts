@@ -4,6 +4,25 @@ master-2.01234.local
 master-3.01234.local
 node-1.01234.local
 node-2.01234.local
+nw-server.01234.local
 
 [reverse-proxy]
 nw-server.01234.local
+
+[k8s-boxes]
+master-1.01234.local
+master-2.01234.local
+master-3.01234.local
+node-1.01234.local
+node-2.01234.local
+
+[k8s-primary-controller]
+master-1.01234.local
+
+[k8s-controllers]
+master-2.01234.local
+master-3.01234.local
+
+[k8s-nodes]
+node-1.01234.local
+node-2.01234.local

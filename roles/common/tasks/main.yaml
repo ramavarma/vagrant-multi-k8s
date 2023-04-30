@@ -1,22 +1,4 @@
 ---
-- name: Disabling Swap in - {{ inventory_hostname }}
-  become: true
-  ansible.builtin.command: swapoff -a
-
-
-- name: Disable SWAP in /etc/fstab - {{ inventory_hostname }}
-  become: true
-  replace:
-    path: /etc/fstab
-    regexp: '^([^#].*?\sswap\s+sw\s+.*)$'
-    replace: '# \1'
-
-- name: Rebooting the machine
-  become: true
-  reboot:
-    msg: Machine repooted for applying SWAP changes
-    post_reboot_delay: 5
-
 - name: Installing Base packages needed
   become: true
   ansible.builtin.apt:
@@ -33,78 +15,11 @@
     - inetutils-traceroute
 
 
-- name: Add an apt signing key for Docker
+- name: Downloading K9s on all boxes
   become: true
-  apt_key:
-    url: https://download.docker.com/linux/ubuntu/gpg
-    state: present
-
-- name: Add apt repository for stable version
-  become: true
-  apt_repository:
-    repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu jammy stable
-    state: present
-
-- name: Install docker and its dependecies
-  become: true
-  apt: 
-    name: "{{ packages }}"
-    state: present
-    update_cache: yes
-  vars:
-    packages:
-    - docker-ce 
-    - docker-ce-cli 
-    - containerd.io
-
-
-- name: Add vagrant user to docker group
-  become: true
-  user:
-    name: vagrant
-    group: docker
-
-- name: Deleting config.toml
-  become: true
-  ansible.builtin.file:
-    path: /etc/containerd/config.toml
-    state: absent
-
-- name: Copying config.toml
-  become: true
-  ansible.builtin.copy:
-    src: config.toml
-    dest: /etc/containerd/
-
-- name: Starting Containerd service
-  become: true
-  ansible.builtin.service:
-    name: containerd
-    state: started
-    enabled: true
-
-
-- name: Add an apt signing key for Kubernetes
-  become: true
-  apt_key:
-    url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
-    state: present
-
-- name: Adding apt repository for Kubernetes
-  become: true
-  apt_repository:
-    repo: deb https://apt.kubernetes.io/ kubernetes-xenial main
-    state: present
-    filename: kubernetes.list
-
-- name: Install Kubernetes binaries
-  become: true
-  apt: 
-    name: "{{ packages }}"
-    state: present
-    update_cache: yes
-  vars:
-    packages:
-      - kubelet 
-      - kubeadm 
-      - kubectl
+  ansible.builtin.unarchive:
+    src: "{{ k9sversion }}"
+    dest: /usr/local/bin
+    remote_src: yes
+    include:
+      - k9s

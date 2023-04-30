@@ -1,0 +1,87 @@
+---
+- name: Pulling Images for Kubernetes
+  become: true
+  ansible.builtin.command: kubeadm config images pull
+
+- name: Performing Kube ADM Initialising
+  become: true
+  ansible.builtin.command: sudo kubeadm init --control-plane-endpoint "{{ loadbalancer }}:{{ api_port }}" --upload-certs
+  register: ret
+  # failed_when: >
+  #   ("To see the stack trace of this error execute with --v=5 or higher" in ret.stdout) or
+  #   ("Failed" in ret.stdout) or
+  #   (ret.stderr != '') or
+  #   (ret.rc == 10)
+
+- debug:
+    msg: "Output: {{ ret.stdout }}"
+
+- debug:
+    msg: "Error: {{ ret.stderr }}"
+
+- name: Checking if Kube API server has booted up using localhost
+  ansible.builtin.command: nc -vz 127.0.0.1 6443
+  register: local_conn_outcome
+  failed_when: >
+    ("failed: Connection refused" in local_conn_outcome.stdout)
+  vars:
+    commands:
+    - nc -vz 127.0.0.1 6443
+    - nc -vz "{{ loadbalancer }} {{ api_port }}"
+
+- name: Enabling kubelet
+  become: true
+  ansible.builtin.service:
+    name: kubelet
+    state: started
+    enabled: true
+
+- name: Starting kubelet
+  become: true
+  ansible.builtin.service:
+    name: kubelet
+    state: restarted
+
+- name: Finding the current user.
+  command: whoami
+  changed_when: false
+  become: false
+  register: whoami
+
+
+- name: Set a fact with the user name.
+  set_fact:
+    login_user: "{{ whoami.stdout }}"
+
+- name: Getting remote user home directory
+  shell: >
+    getent passwd {{ login_user }}  | awk -F: '{ print $6 }'
+  changed_when: false
+  register: home
+
+- debug:
+    msg: "User home directory: {{ home.stdout }}"
+
+- name: Creating .kube folder
+  ansible.builtin.file:
+    path: "{{ home.stdout }}/.kube"
+    state: directory
+
+- name: Copying admin.conf from /etc/kubernetes as config
+  become: true
+  ansible.builtin.copy:
+    src: /etc/kubernetes/admin.conf
+    dest: "{{ home.stdout }}/.kube/config"
+    remote_src: yes
+
+
+- name: Fix 'support_tools' permissions
+  become: true
+  ansible.builtin.file: 
+    path: "{{ home.stdout }}/.kube/config" 
+    owner: "{{ login_user }}"
+    group: "{{ login_user }}" 
+    mode: 0775 
+
+# - name: Configuring calico CNI
+
