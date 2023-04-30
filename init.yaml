@@ -1,0 +1,11 @@
+---
+- name: Setting up haproxy and reverse proxy server
+  hosts: reverse-proxy
+  roles:
+    - rproxy
+
+
+- name: Performing base kubernetes setup
+  hosts: all
+  roles:
+    - common
